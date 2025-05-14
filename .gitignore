@@ -37,4 +37,4 @@ ENV/
 .env.*.local
 
 # Vercel
-.vercel 
+.vercel "node_modules/" 
