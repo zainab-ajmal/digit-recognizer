@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Digit Classification</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MNIST Digit Classification</h1>
+            <p>Upload an image of a handwritten digit (0-9) to classify it</p>
+        </header>
+
+        <main>
+            <div class="upload-container">
+                <div class="upload-area" id="dropZone">
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-content">
+                        <img src="/static/upload-icon.svg" alt="Upload" id="uploadIcon">
+                        <p>Drag and drop an image here or</p>
+                        <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                            Choose File
+                        </button>
+                    </div>
+                    <div class="upload-instructions">
+                        <p class="note">Note: The image will be converted to grayscale and resized to 28x28 pixels</p>
+                    </div>
+                </div>
+                
+                <div class="preview-container" id="previewContainer" style="display: none;">
+                    <div class="preview-wrapper">
+                        <img id="imagePreview" alt="Preview">
+                        <div class="preview-overlay">
+                            <p>Original Image</p>
+                        </div>
+                    </div>
+                    <div class="preview-wrapper">
+                        <img id="processedPreview" alt="Processed Preview">
+                        <div class="preview-overlay">
+                            <p>Processed (28x28)</p>
+                        </div>
+                    </div>
+                    <button class="remove-button" onclick="removeImage()">×</button>
+                </div>
+            </div>
+
+            <div class="result-container" id="resultContainer" style="display: none;">
+                <h2>Classification Result</h2>
+                <div class="result-content">
+                    <div class="prediction-box">
+                        <span class="prediction-label">Predicted Digit:</span>
+                        <span class="prediction-value" id="prediction">-</span>
+                    </div>
+                    <div class="confidence-box">
+                        <span class="confidence-label">Confidence:</span>
+                        <span class="confidence-value" id="confidence">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing image...</p>
+            </div>
+
+            <div class="error" id="error" style="display: none;">
+                <p id="errorMessage"></p>
+            </div>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html> 
