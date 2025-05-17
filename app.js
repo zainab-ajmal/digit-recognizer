@@ -4,8 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput');
     const previewContainer = document.getElementById('previewContainer');
     const imagePreview = document.getElementById('imagePreview');
+    const processedPreview = document.getElementById('processedPreview');
     const resultContainer = document.getElementById('resultContainer');
     const predictionElement = document.getElementById('prediction');
+    const confidenceElement = document.getElementById('confidence');
     const loadingElement = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const errorMessage = document.getElementById('errorMessage');
@@ -76,17 +78,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Display original image
-            await displayOriginalImage(file);
+            // Process in chunks with timeouts to prevent UI freeze
+            await processWithTimeout(async () => {
+                // Display original image
+                await displayOriginalImage(file);
                 
-            // Get prediction from server
-            await getPrediction(file);
+                // Process and display preview
+                await displayProcessedPreview(file);
+                
+                // Get prediction from server
+                await getPrediction(file);
+            }, 15000); // 15 second timeout
 
         } catch (error) {
             showError(error.message);
         } finally {
             processing = false;
             loadingElement.style.display = 'none';
+        }
+    }
+
+    // Helper function with timeout
+    async function processWithTimeout(task, timeout) {
+        let timeoutId;
+        
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error('Processing took too long. Try a smaller image.'));
+            }, timeout);
+        });
+
+        try {
+            await Promise.race([
+                task(),
+                timeoutPromise
+            ]);
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -122,11 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             reader.onload = (e) => {
                 imagePreview.onload = () => {
-                    previewContainer.style.display = 'block';
                     resolve();
                 };
                 imagePreview.onerror = () => {
-                    reject(new Error('Failed to load image'));
+                    reject(new Error('Failed to load original image'));
                 };
                 imagePreview.src = e.target.result;
             };
@@ -139,15 +166,120 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Display processed preview (28x28 grayscale)
+    async function displayProcessedPreview(file) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // First create a smaller version (200px) to make final processing faster
+                const mediumSizeUrl = await resizeImage(file, 200);
+                
+                // Then create the final 28x28 version
+                const processedUrl = await resizeImage(mediumSizeUrl, 28, true);
+                
+                processedPreview.onload = () => {
+                    previewContainer.style.display = 'flex';
+                    resolve();
+                };
+                processedPreview.onerror = () => {
+                    reject(new Error('Failed to load processed image'));
+                };
+                processedPreview.src = processedUrl;
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // Generic image resizing function
+    function resizeImage(source, size, grayscale = false) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas dimensions
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    // Fill with white background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Calculate scaling while maintaining aspect ratio
+                    const scale = Math.min(
+                        size / img.width,
+                        size / img.height
+                    );
+                    
+                    const x = (size - img.width * scale) / 2;
+                    const y = (size - img.height * scale) / 2;
+                    
+                    // Draw the image
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    
+                    // Convert to grayscale if requested
+                    if (grayscale) {
+                        const imageData = ctx.getImageData(0, 0, size, size);
+                        const data = imageData.data;
+                        
+                        for (let i = 0; i < data.length; i += 4) {
+                            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                            data[i] = data[i + 1] = data[i + 2] = avg;
+                        }
+                        
+                        ctx.putImageData(imageData, 0, 0);
+                    }
+                    
+                    // Return as data URL
+                    resolve(canvas.toDataURL());
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => {
+                reject(new Error('Failed to load image for processing'));
+            };
+            
+            // Handle both file objects and data URLs
+            if (typeof source === 'string') {
+                img.src = source;
+            } else {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => {
+                    reject(new Error('Failed to read file for processing'));
+                };
+                reader.readAsDataURL(source);
+            }
+        });
+    }
+
     // Get prediction from server
     async function getPrediction(file) {
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            
+            // Convert file to base64
+            const base64Image = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            // Send to serverless function
             const response = await fetch('/api/predict', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: base64Image
+                })
             });
             
             if (!response.ok) {
@@ -170,8 +302,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Display results
     function displayResults(data) {
         predictionElement.textContent = data.prediction;
+        confidenceElement.textContent = `${(data.confidence * 100).toFixed(2)}%`;
         resultContainer.style.display = 'block';
-        resultContainer.scrollIntoView({ behavior: 'smooth' });
+        
+        // Smooth scroll to results
+        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     // Drag and drop visual feedback
@@ -208,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetUI();
         previewContainer.style.display = 'none';
         imagePreview.src = '';
+        processedPreview.src = '';
         currentFile = null;
     };
 
