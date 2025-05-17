@@ -2,48 +2,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM elements
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const previewContainer = document.getElementById('previewContainer');
     const imagePreview = document.getElementById('imagePreview');
-    const resultContainer = document.getElementById('resultContainer');
+    const resultContainer = document.getElementById('outputSection');
     const predictionElement = document.getElementById('prediction');
-    const confidenceElement = document.getElementById('confidence');
     const loadingElement = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const errorMessage = document.getElementById('errorMessage');
 
-    // State variables
+    // State
     let processing = false;
     let currentFile = null;
 
     function init() {
         dropZone.addEventListener('click', handleZoneClick);
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlightDropZone);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlightDropZone);
-        });
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-
+        ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, highlightDropZone));
+        ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, unhighlightDropZone));
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => document.body.addEventListener(e, preventDefaults));
         dropZone.addEventListener('drop', handleFileDrop);
         fileInput.addEventListener('change', handleFileInput);
     }
 
     function handleZoneClick() {
-        if (!processing) {
-            fileInput.click();
-        }
+        if (!processing) fileInput.click();
     }
 
     function handleFileDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        processFiles(files);
+        processFiles(e.dataTransfer.files);
     }
 
     function handleFileInput(e) {
@@ -52,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function processFiles(files) {
         if (processing) return;
-
         const file = files[0];
         if (!file) return;
 
@@ -62,9 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingElement.style.display = 'block';
 
         try {
-            if (!validateFile(file)) {
-                return;
-            }
+            if (!validateFile(file)) return;
 
             await processWithTimeout(async () => {
                 await displayOriginalImage(file);
@@ -81,63 +62,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function processWithTimeout(task, timeout) {
         let timeoutId;
-
         const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-                reject(new Error('Processing took too long. Try a smaller image.'));
-            }, timeout);
+            timeoutId = setTimeout(() => reject(new Error('Processing took too long. Try a smaller image.')), timeout);
         });
 
         try {
-            await Promise.race([
-                task(),
-                timeoutPromise
-            ]);
+            await Promise.race([task(), timeoutPromise]);
         } finally {
             clearTimeout(timeoutId);
         }
     }
 
     function validateFile(file) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        const maxSize = 5 * 1024 * 1024;
         if (!file) {
             showError('No file selected');
             return false;
         }
-
-        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         if (!validTypes.includes(file.type.toLowerCase())) {
             showError('Please upload a JPG, JPEG, or PNG image');
             return false;
         }
-
-        const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
             showError('File size too large. Max 5MB allowed');
             return false;
         }
-
         return true;
     }
 
     async function displayOriginalImage(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-
             reader.onload = (e) => {
                 imagePreview.onload = () => {
-                    previewContainer.style.display = 'flex';
+                    resultContainer.style.display = 'block';
                     resolve();
                 };
-                imagePreview.onerror = () => {
-                    reject(new Error('Failed to load original image'));
-                };
+                imagePreview.onerror = () => reject(new Error('Failed to load original image'));
                 imagePreview.src = e.target.result;
             };
-
-            reader.onerror = () => {
-                reject(new Error('Failed to read file'));
-            };
-
+            reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsDataURL(file);
         });
     }
@@ -146,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const formData = new FormData();
             formData.append('file', file);
-
             const response = await fetch('https://digit-recognizer-backend-production.up.railway.app/predict', {
                 method: 'POST',
                 body: formData
@@ -158,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-
             if (data.success) {
                 displayResults(data);
             } else {
@@ -171,8 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayResults(data) {
         predictionElement.textContent = data.prediction;
-        confidenceElement.textContent = ''; // Removed confidence display
-        confidenceElement.style.display = 'none'; // Hide the box if needed
         resultContainer.style.display = 'block';
         resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -199,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         errorElement.style.display = 'none';
         resultContainer.style.display = 'none';
         fileInput.value = '';
-        previewContainer.style.display = 'none';
         imagePreview.src = '';
     }
 
