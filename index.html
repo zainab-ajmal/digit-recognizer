@@ -29,27 +29,16 @@
                     </div>
                 </div>
                 
-                <div class="preview-container" id="previewContainer" style="display: none;">
-                    <div class="preview-wrapper">
-                        <img id="imagePreview" alt="Preview">
-                        <div class="preview-overlay">
-                            <p>Original Image</p>
-                        </div>
-                    </div>
-                    </div>
-                    <button class="remove-button" onclick="removeImage()">×</button>
-                </div>
-            </div>
-
-            <div class="result-container" id="resultContainer" style="display: none;">
-                <h2>Classification Result</h2>
-                <div class="result-content">
-                    <div class="prediction-box">
-                        <span class="prediction-label">Predicted Digit:</span>
-                        <span class="prediction-value" id="prediction">-</span>
-                    </div>
-                </div>
-            </div>
+<div class="output-section" id="outputSection" style="display: none;">
+    <div class="image-box">
+        <img id="imagePreview" alt="Uploaded Image">
+        <p class="image-label">Original Image</p>
+    </div>
+    <div class="prediction-box">
+        <span class="prediction-label">Predicted Digit:</span>
+        <span class="prediction-value" id="prediction">-</span>
+    </div>
+</div>
 
             <div class="loading" id="loading" style="display: none;">
                 <div class="spinner"></div>
