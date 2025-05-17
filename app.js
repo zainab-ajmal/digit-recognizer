@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             formData.append('file', file);
             
-            const response = await fetch('/predict', {
+            const response = await fetch('https://digit-recognizer-backend-production.up.railway.app/predict', {
                 method: 'POST',
                 body: formData
             });
