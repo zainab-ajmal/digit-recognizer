@@ -288,7 +288,7 @@ header p {
     position: relative;
 }
 
-.prediction-box, .confidence-box {
+.prediction-box {
     padding: 1.5rem 2.5rem;
     background: var(--background);
     border-radius: 1rem;
@@ -296,11 +296,11 @@ header p {
     transition: transform 0.3s ease;
 }
 
-.prediction-box:hover, .confidence-box:hover {
+.prediction-box:hover {
     transform: translateY(-2px);
 }
 
-.prediction-label, .confidence-label {
+.prediction-label {
     display: block;
     font-size: 1rem;
     color: var(--text);
@@ -308,7 +308,7 @@ header p {
     font-weight: 500;
 }
 
-.prediction-value, .confidence-value {
+.prediction-value {
     display: block;
     font-size: 2.5rem;
     font-weight: bold;
@@ -372,26 +372,21 @@ header p {
         gap: 1.5rem;
     }
     
-    .prediction-box, .confidence-box {
+    .prediction-box {
         min-width: unset;
         padding: 1.25rem;
     }
     
-    .prediction-value, .confidence-value {
+    .prediction-value {
         font-size: 2rem;
     }
 } 
 
-#imagePreview,
-#processedPreview {
+#imagePreview {
     width: 200px;
     height: 200px;
     border-radius: 1rem;
     border: 2px solid var(--accent);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s ease;
-}
-
-#processedPreview {
-    image-rendering: pixelated;
 }
