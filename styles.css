@@ -381,3 +381,17 @@ header p {
         font-size: 2rem;
     }
 } 
+
+#imagePreview,
+#processedPreview {
+    width: 200px;
+    height: 200px;
+    border-radius: 1rem;
+    border: 2px solid var(--accent);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+}
+
+#processedPreview {
+    image-rendering: pixelated;
+}
